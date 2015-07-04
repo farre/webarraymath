@@ -1,4 +1,4 @@
-function Benchmark(println) {
+function Benchmark(println, ArrayMath, Filter, FFT) {
   var LENGTH = 2048;
   var MIN_ITERATIONS = 10000;
   var MIN_DT = 1000;
@@ -25,12 +25,12 @@ function Benchmark(println) {
 
   println("---Benchmark---");
 
-  var x = new Float32Array(LENGTH);
-  var y = new Float32Array(LENGTH);
-  var z = new Float32Array(LENGTH);
-  var xIm = new Float32Array(LENGTH);
-  var yIm = new Float32Array(LENGTH);
-  var zIm = new Float32Array(LENGTH);
+  var x = new ArrayMath.Float32Array(LENGTH);
+  var y = new ArrayMath.Float32Array(LENGTH);
+  var z = new ArrayMath.Float32Array(LENGTH);
+  var xIm = new ArrayMath.Float32Array(LENGTH);
+  var yIm = new ArrayMath.Float32Array(LENGTH);
+  var zIm = new ArrayMath.Float32Array(LENGTH);
   var p = new Uint8Array(LENGTH * 4);
   var t0, dt, total_t = 0, total_samples = 0, k, filter, fft;
 

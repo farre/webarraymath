@@ -1,16 +1,32 @@
 <html>
 <head>
 <title>Web Array Math API benchmark</title>
+<script type="text/javascript" src="../polyfill/SIMD.js"></script>
+<script>
+  var self = {};
+</script>
+<script>
+  var poly = {};
+  self = poly;
+</script>
 <script type="text/javascript" src="../polyfill/webarraymath.js"></script>
+<script>
+  var polyasm = {};
+  self = polyasm;
+</script>
+<script type="text/javascript" src="../polyfill/webarraymath-asm.js"></script>
 <script type="text/javascript" src="benchmark.js"></script>
 <script type="text/javascript">
 function Run() {
+  var asmjs = document.querySelector('input[name=poly][checked]').value === "poly-asm";
+  var module = asmjs ? polyasm : poly;
+
   var text = "";
   var println = function (msg) {
     text += msg + "\n"
   };
   try {
-    Benchmark(println);
+    Benchmark(println, module.ArrayMath, module.Filter, module.FFT);
   } catch (err) {
     println(err.message);
   }
@@ -18,6 +34,7 @@ function Run() {
 }
 
 function RunInWorker() {
+  var asmjs = document.querySelector('input[name=poly]:checked').value === "poly-asm";
   var myWorker = new Worker("benchmarkworker.js");
   myWorker.onmessage = function (oEvent) {
     document.getElementById("output").textContent += oEvent.data + "\n";
@@ -26,7 +43,7 @@ function RunInWorker() {
     document.getElementById("output").textContent += "ERROR: " +
         oEvent.filename + "(" + oEvent.lineno + "): " +  oEvent.message + "\n";
   }
-  myWorker.postMessage("Go-go-go!");
+  myWorker.postMessage(asmjs);
 }
 
 function ClearOutput() {
@@ -46,6 +63,8 @@ body {
 <p>Warning: "Run in main thread" is not recommended - it's just there to test
 that things work as expected both in workers and in the main thread.</p>
 <div>
+<label><input type="radio" name="poly" value="poly" checked />Regular polyfill</label><br />
+<label><input type="radio" name="poly" value="poly-asm" />asm.js polyfill</label><br />
 <input type="submit" value="Run in worker" onclick="RunInWorker()" />
 <input type="submit" value="Run in main thread" onclick="Run()" />
 <input type="submit" value="Clear output" onclick="ClearOutput()" />
@@ -53,4 +72,3 @@ that things work as expected both in workers and in the main thread.</p>
 <pre id="output"></pre>
 </body>
 </html>
-

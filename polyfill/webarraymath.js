@@ -36,6 +36,10 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
   var ArrayMath = {};
 
+  ArrayMath.Float32Array = function (size) {
+    return new Float32Array(size);
+  }
+
   ArrayMath.add = function (dst, x, y) {
     var k;
     if (x instanceof Float32Array)
