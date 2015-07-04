@@ -40,6 +40,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
   var f = function(stdlib, foreign, buffer) {
     "use asm";
     var HEAPF32 = new stdlib.Float32Array(buffer);
+    var HEAPI32 = new stdlib.Int32Array(buffer);
     
     var Infinity = stdlib.Infinity;
     var fround = stdlib.Math.fround;
@@ -653,6 +654,44 @@ var context = typeof module === 'undefined' ? self : module.exports;
       return;
     }
 
+    function randomA2(d, x, y, l, s) {
+      s = s | 0;
+      var a = 1, b = 0, c = 0;
+      HEADI32[(d << 2) >> 2] = s;
+      b = seed;
+      while (1) {
+        seed = imul(b >>> 30 ^ b, 0x6c078965) + a | 0;
+        heapi32[(a << 2) >> 2] = seed;
+        c = a + 1 | 0;
+        if (c >>> 0 < 624) {
+          a = c;
+          b = seed;
+        } else {
+          break;
+        }
+      }
+      heapi32[624] = 0;
+      heapi32[625] = 0;
+
+/*
+        function random() {
+            var a = 0, b = 0, c = 0, d = 0;
+            a = heapi32[625] | 0;
+            b = a + ((a >>> 0 < 2496) ? 4 : -2496) | 0;
+            c = heapi32[b >> 2] | 0;
+            d = -(c & 1) & 0x9908b0df ^
+                heapi32[(a + (a >>> 0 < 912 ? 1588 : -908)) >> 2] ^
+                (c & 0x7ffffffe | heapi32[a >> 2] & 0x80000000) >>> 1;
+            c = d >>> 11 ^ d;
+            heapi32[a >> 2] = d;
+            heapi32[625] = b;
+            b = c << 7 & 0x9d2c5680 ^ c;
+            c = b << 15 & 0xefc60000 ^ b;
+            return c >>> 18 ^ c | 0;
+        }
+*/
+    }
+
     function rampA(d, x, y, l) {
       d = d | 0;
       x = fround(x);
@@ -705,7 +744,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
            }
   };
   
-  var ArrayMathAsm = f({Math: Math, Float32Array: Float32Array, Infinity}, {random:Math.random}, HEAP);
+  var ArrayMathAsm = f({Math: Math, Float32Array: Float32Array, Int32Array: Int32Array, Infinity}, {random:Math.random}, HEAP);
   
   var ArrayMath = {};
 
