@@ -33,20 +33,19 @@ var context = typeof module === 'undefined' ? self : module.exports;
 (function (global) {
   if (context.ArrayMath) return;
 
-  var HEAP = new ArrayBuffer(0x20000);
+  var HEAP = new ArrayBuffer(0x40000);
   var freelist = [];
-  var top = 0;
-  
-  var f = function(stdlib, foreign, buffer) {
+  var top = 1024 * 4;
+
+  var ctor = function(stdlib, foreign, buffer) {
     "use asm";
-    var HEAPF32 = new stdlib.Float32Array(buffer);
-    var HEAPI32 = new stdlib.Int32Array(buffer);
-    var HEAPU32 = new stdlib.Uint32Array(buffer);
-    
+    var HEAPF32  = new stdlib.Float32Array(buffer);
+    var HEAPU32  = new stdlib.Uint32Array(buffer);
+    var MHEAPU32 = new stdlib.Uint32Array(buffer);
+
     var Infinity = stdlib.Infinity;
     var fround = stdlib.Math.fround;
     var imul = stdlib.Math.imul;
-    var abs = stdlib.Math.abs;
     var sqrt = stdlib.Math.sqrt;
     var acos = stdlib.Math.acos;
     var asin = stdlib.Math.asin;
@@ -58,8 +57,11 @@ var context = typeof module === 'undefined' ? self : module.exports;
     var floor = stdlib.Math.floor;
     var log = stdlib.Math.log;
     var pow = stdlib.Math.pow;
-    var random = foreign.random
-   
+    var sin = stdlib.Math.sin;
+    var tan = stdlib.Math.tan;
+
+    var round = foreign.round;
+
     function addA(d, x, y, l) {
       d=d|0;
       x=x|0;
@@ -69,15 +71,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2]) + fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) + fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-  
+
     function addS(d, x, y, l) {
       d=d|0;
       x=fround(x);
@@ -87,30 +89,32 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = x + fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(x + fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function subA(d, x, y, l) {
       d=d|0;
       x=x|0;
       y=y|0;
       l=l|0
 
+      var t = fround(0.0);
+
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2]) - fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) - fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -123,15 +127,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = x - fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(x - fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function mulA(d, x, y, l) {
       d=d|0;
       x=x|0;
@@ -141,15 +145,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2]) * fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) * fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function mulS(d, x, y, l) {
       d=d|0;
       x=fround(x);
@@ -159,15 +163,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = x * fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(x * fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function mulCplxA(dr, di, xr, xi, yr, yi, l) {
       dr=dr|0;
       di=di|0;
@@ -182,17 +186,17 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         xrv = fround(HEAPF32[xr + (l << 2) >> 2]);
         xiv = fround(HEAPF32[xi + (l << 2) >> 2]);
         yrv = fround(HEAPF32[yr + (l << 2) >> 2]);
         yiv = fround(HEAPF32[yi + (l << 2) >> 2]);
-        HEAPF32[dr + (l << 2) >> 2] = fround(xrv * yrv) - fround(xiv * yiv)
-        HEAPF32[di + (l << 2) >> 2] = fround(xrv * yiv) + fround(xiv * yrv);
+        HEAPF32[dr + (l << 2) >> 2] = fround(fround(xrv * yrv) - fround(xiv * yiv));
+        HEAPF32[di + (l << 2) >> 2] = fround(fround(xrv * yiv) + fround(xiv * yrv));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -210,15 +214,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         yrv = fround(HEAPF32[yr + (l << 2) >> 2]);
         yiv = fround(HEAPF32[yi + (l << 2) >> 2]);
-        HEAPF32[dr + (l << 2) >> 2] = fround(xr * yrv) - fround(xi * yiv)
-        HEAPF32[di + (l << 2) >> 2] = fround(xr * yiv) + fround(xi * yrv);
+        HEAPF32[dr + (l << 2) >> 2] = fround(fround(xr * yrv) - fround(xi * yiv))
+        HEAPF32[di + (l << 2) >> 2] = fround(fround(xr * yiv) + fround(xi * yrv));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -231,15 +235,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2]) / fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) / fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function divS(d, x, y, l) {
       d=d|0;
       x=fround(x);
@@ -249,12 +253,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = x / fround(HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(x / fround(HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -272,7 +276,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         xrv = fround(HEAPF32[xr + (l << 2) >> 2]);
@@ -284,7 +288,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
         HEAPF32[dr + (l << 2) >> 2] = fround(fround(xrv * yrv) - fround(xiv * yiv)) * d;
         HEAPF32[di + (l << 2) >> 2] = fround(fround(xrv * yiv) + fround(xiv * yrv)) * d;
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -312,11 +316,11 @@ var context = typeof module === 'undefined' ? self : module.exports;
         HEAPF32[dr + (l << 2) >> 2] = fround(fround(xr * yrv) - fround(xi * yiv)) * d;
         HEAPF32[di + (l << 2) >> 2] = fround(fround(xr * yiv) + fround(xi * yrv)) * d;
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
-    
+
     function maddA(d, x, y, z, l) {
       d=d|0;
       x=x|0;
@@ -327,15 +331,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) * fround(HEAPF32[y + (l << 2) >> 2])) + fround(HEAPF32[z + (l << 2) >> 2]);
       } while ((l | 0) > 0);
-       
+
       return;
     }
-    
+
     function maddS(d, x, y, z, l) {
       d=d|0;
       x=fround(x);
@@ -346,12 +350,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         HEAPF32[d + (l << 2) >> 2] = fround(x * fround(HEAPF32[y + (l << 2) >> 2])) + fround(HEAPF32[z + (l << 2) >> 2]);
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -363,12 +367,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = abs(HEAPF32[x + (l << 2) >> 2]);
+        HEAPU32[d + (l << 2) >> 2] = HEAPU32[x + (l << 2) >> 2] & 0x7fffffff;
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -383,16 +387,14 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
         rv = fround(HEAPF32[r + (l << 2) >> 2]);
-        rv = fround(rv * rv);
         iv = fround(HEAPF32[i + (l << 2) >> 2]);
-        iv = fround(iv * iv);
-        HEAPF32[d + (l << 2) >> 2] = sqrt(fround(rv + iv));
+        HEAPF32[d + (l << 2) >> 2] = fround(sqrt(fround(fround(rv * rv) + fround(iv * iv))));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -404,12 +406,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = acos(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(acos(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -421,12 +423,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = asin(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(asin(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -438,12 +440,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = atan(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(atan(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -456,12 +458,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = atan2(+HEAPF32[x + (l << 2) >> 2], +HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(atan2(+HEAPF32[x + (l << 2) >> 2], +HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -473,12 +475,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = ceil(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(ceil(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -490,12 +492,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = cos(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(cos(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -507,12 +509,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = exp(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(exp(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -524,12 +526,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = floor(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(floor(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -541,12 +543,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = log(+HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(log(+HEAPF32[x + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -562,7 +564,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return r;
       }
-       
+
       do {
         l = l + -1 | 0;
         v = fround(HEAPF32[x + (l << 2) >> 2]);
@@ -570,7 +572,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
           r = v;
         }
       } while ((l | 0) > 0);
-       
+
       return r;
     }
 
@@ -586,7 +588,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return r;
       }
-       
+
       do {
         l = l + -1 | 0;
         v = fround(HEAPF32[x + (l << 2) >> 2]);
@@ -594,7 +596,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
           r = v;
         }
       } while ((l | 0) > 0);
-       
+
       return r;
     }
 
@@ -607,12 +609,12 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = pow(+HEAPF32[x + (l << 2) >> 2], +HEAPF32[y + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(pow(+HEAPF32[x + (l << 2) >> 2], +HEAPF32[y + (l << 2) >> 2]));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
@@ -625,77 +627,122 @@ var context = typeof module === 'undefined' ? self : module.exports;
       if ((l | 0) <= 0) {
         return;
       }
-       
-      do {
-        l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = pow(+HEAPF32[x + (l << 2) >> 2], +y);
-      } while ((l | 0) > 0);
-       
-      return;
-    }
-
-    function randomA(d, x, y, l) {
-      d=d|0;
-      x=fround(x);
-      y=fround(y);
-      l=l|0
-
-      var s = fround(0);
-
-      if ((l | 0) <= 0) {
-        return;
-      }
-       
-      s = fround(y - x);
 
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = fround(fround(+random()) * s) + x;
+        HEAPF32[d + (l << 2) >> 2] = fround(pow(+HEAPF32[x + (l << 2) >> 2], +y));
       } while ((l | 0) > 0);
-       
+
       return;
     }
 
-    function randomA2(d, x, y, l, s) {
-      d=d|0;
+    function init(s) {
+      s = s | 0;
+      var c = 1;
+
+      MHEAPU32[0] = s;
+      do {
+        s = (imul(s >>> 30 ^ s, 1812433253) | 0) + c | 0;
+        MHEAPU32[(c << 2) >> 2] = s;
+        c = c + 1 | 0;
+      } while ((c | 0) < 624);
+      return;
+    }
+
+    function randomA(d, x, y, l, s) {
+      d = d | 0;
       x=fround(x);
       y=fround(y);
       l=l|0
       s=s|0;
-      var c = 0, n = 0, t = 0, u = fround(0);
+      var c = 0;
 
       if ((l | 0) <= 0) {
         return;
       }
 
-      n = ((l | 0) > 624 ? 624 : l) | 0;
+      init(s);
+
+      y = fround(fround(y - x) * fround(2.3283064365386963E-10));
 
       do {
-        HEAPU32[d + (c << 2) >> 2] = s;
-        c = c + 1 | 0;
-        s = imul(s >>> 30 ^ s, 0x6c078965) + c | 0;
-      } while ((c | 0) != (n | 0));
-
-      n = 0;
-
-      do {
-        c = n + 1 | 0
-        s = HEAPU32[d + (c << 2) >> 2] | 0;
-
-        s = -(s & 1) & 0x9908b0df ^
-            HEAPU32[d + ((n + (n >>> 0 < 228 ? 397 : -227) | 0) << 2) >> 2] ^
-            (s & 0x7ffffffe | HEAPU32[d + (n << 2) >> 2] & 0x80000000) >>> 1
-
-        HEAPU32[d + (c << 2) >> 2] = s;
-
+        s = MHEAPU32[((c + 1 | 0) << 2) >> 2] | 0;
+        s = 0 - (s & 1) & -1727483681 ^ MHEAPU32[((((c + 397 | 0) >>> 0) % 624 | 0) << 2) >> 2] ^ (s & 2147483646 | MHEAPU32[(c << 2) >> 2] & -2147483648) >>> 1;
+        MHEAPU32[(c << 2) >> 2] = s
         s = s >>> 11 ^ s;
-        s = s << 7 & 0x9d2c5680 ^ s;
-        s = s << 15 & 0xefc60000 ^ s;
-        s = s >>> 18 ^ s | 0;
-
-
-        HEAPF32[d + (n << 2) >> 2] = +(4294967296.0 / +(s >>> 0));
+        s = s << 7 & -1658038656 ^ s;
+        s = s << 15 & -272236544 ^ s;
+        HEAPF32[d + (c << 2) >> 2] = fround(fround(fround(fround((s >>> 18 ^ s) >>> 0)) * y) - x);
+        c = c + 1 | 0;
       } while ((c | 0) != (l | 0));
+    }
+
+    function roundA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        HEAPF32[d + (l << 2) >> 2] = fround(+round(+HEAPF32[x + (l << 2) >> 2]));
+      } while ((l | 0) > 0);
+
+      return;
+    }
+
+    function sinA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        HEAPF32[d + (l << 2) >> 2] = fround(sin(+HEAPF32[x + (l << 2) >> 2]));
+      } while ((l | 0) > 0);
+
+      return;
+    }
+
+    function sqrtA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        HEAPF32[d + (l << 2) >> 2] = fround(sqrt(+HEAPF32[x + (l << 2) >> 2]));
+      } while ((l | 0) > 0);
+
+      return;
+    }
+
+    function tanA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        HEAPF32[d + (l << 2) >> 2] = fround(tan(+HEAPF32[x + (l << 2) >> 2]));
+      } while ((l | 0) > 0);
+
+      return;
     }
 
     function rampA(d, x, y, l) {
@@ -704,19 +751,36 @@ var context = typeof module === 'undefined' ? self : module.exports;
       y = fround(y);
       l = l | 0;
       y = fround(fround(y - x) / fround(l + -1 | 0));
-      
+
       if ((l | 0) <= 0) {
         return;
       }
-      
+
       do {
         l = l + -1 | 0;
-        HEAPF32[d + (l << 2) >> 2] = x + fround(y * fround(l | 0));
+        HEAPF32[d + (l << 2) >> 2] = fround(x + fround(y * fround(l | 0)));
       } while ((l | 0) > 0);
-            
+
       return;
     }
-   
+
+    function signA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        HEAPU32[d + (l << 2) >> 2] = (HEAPU32[x + (l << 2) >> 2] & 0x80000000) + ~~(1.0);
+      } while ((l | 0) > 0);
+
+      return;
+    }
+
     return { addA: addA
            , addS: addS
            , subA: subA
@@ -746,12 +810,17 @@ var context = typeof module === 'undefined' ? self : module.exports;
            , minA: minA
            , powA: powA
            , randomA: randomA
+           , roundA: roundA
+           , sinA: sinA
+           , sqrtA: sqrtA
+           , tanA: tanA
            , rampA: rampA
+           , signA: signA
            }
   };
-  
-  var ArrayMathAsm = f({Math: Math, Float32Array: Float32Array, Uint32Array: Uint32Array, Int32Array: Int32Array, Infinity}, {random:Math.random}, HEAP);
-  
+
+  var ArrayMathAsm = ctor({Math: Math, Float32Array: Float32Array, Uint32Array: Uint32Array, Infinity}, {round: Math.round}, HEAP);
+
   var ArrayMath = {};
 
   ArrayMath.Float32Array = function (size) {
@@ -759,7 +828,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
     top += ta.byteLength;
     return ta;
   }
-  
+
   ArrayMath.add = function (dst, x, y) {
     if (x instanceof Float32Array)
         ArrayMathAsm.addA(dst.byteOffset, x.byteOffset, y.byteOffset, Math.min(dst.length, x.length, y.length));
@@ -830,8 +899,8 @@ var context = typeof module === 'undefined' ? self : module.exports;
     ArrayMathAsm.atanA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
-  ArrayMath.atan2 = function (dst, y, x) {
-    ArrayMathAsm.atan2A(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length, y.length));
+  ArrayMath.atan2 = function (dst, x, y) {
+    ArrayMathAsm.atan2A(dst.byteOffset, x.byteOffset, y.byteOffset, Math.min(dst.length, x.length, y.length));
   };
 
   ArrayMath.ceil = function (dst, x) {
@@ -874,27 +943,23 @@ var context = typeof module === 'undefined' ? self : module.exports;
       low = 0;
     if (isNaN(parseFloat(high)))
       high = 1;
-    ArrayMathAsm.randomA(dst.byteOffset, low, high, dst.length);
+    ArrayMathAsm.randomA(dst.byteOffset, low, high, dst.length, Math.random() * 0x100000000);
   };
 
   ArrayMath.round = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k)
-      dst[k] = Math.round(x[k]);
+    ArrayMathAsm.roundA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.sin = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k)
-      dst[k] = Math.sin(x[k]);
+    ArrayMathAsm.sinA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.sqrt = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k)
-      dst[k] = Math.sqrt(x[k]);
+    ArrayMathAsm.sqrtA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.tan = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k)
-      dst[k] = Math.tan(x[k]);
+    ArrayMathAsm.tanA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.clamp = function (dst, x, xMin, xMax) {
@@ -912,9 +977,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
   };
 
   ArrayMath.fill = function (dst, value) {
-    for (var k = dst.length - 1; k >= 0; --k) {
-      dst[k] = value;
-    }
+    dst.fill(value);
   };
 
   ArrayMath.ramp = function (dst, first, last) {
@@ -922,8 +985,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
   };
 
   ArrayMath.sign = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k)
-      dst[k] = x[k] < 0 ? -1 : 1;
+    ArrayMathAsm.signA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.sum = function (x) {
@@ -1706,4 +1768,3 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
   context.FFT = FFT;
 })();
-
