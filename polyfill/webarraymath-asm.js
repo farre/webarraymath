@@ -745,6 +745,42 @@ var context = typeof module === 'undefined' ? self : module.exports;
       return;
     }
 
+    function clampA(d, x, s, t, l) {
+      d=d|0;
+      x=x|0
+      s=fround(s);
+      t=fround(t);
+      l=l|0
+      var v=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        v = fround(HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(v < s ? s : v > t ? t : v);
+      } while ((l | 0) > 0);
+    }
+
+    function fractA(d, x, l) {
+      d=d|0;
+      x=x|0
+      l=l|0
+      var v=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        v = fround(HEAPF32[x + (l << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(v - fround(floor(v)));
+      } while ((l | 0) > 0);
+    }
+
     function rampA(d, x, y, l) {
       d = d | 0;
       x = fround(x);
@@ -781,6 +817,159 @@ var context = typeof module === 'undefined' ? self : module.exports;
       return;
     }
 
+    function sumA(x, l) {
+      x=x|0
+      l=l|0
+      var v=fround(0);
+
+      if ((l | 0) <= 0) {
+        return fround(0);
+      }
+
+      do {
+        l = l + -1 | 0;
+        v = fround(v + fround(HEAPF32[x + (l << 2) >> 2]));
+      } while ((l | 0) > 0);
+
+      return v;
+    }
+
+    function sampleLinearA(d, x, t, i, l) {
+      d=d|0
+      x=x|0
+      t=t|0
+      i=i|0
+      l=l|0
+      var t2=fround(0), z=fround(0), j=0, w=fround(0), p1=fround(0), p2=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        t2 = fround(HEAPF32[t + (l << 2) >> 2]);
+        t2 = fround(t2 < z ? z : t2 > fround(i|0) ? fround(i|0) : t2)
+        w = fround(floor(+t2));
+        j = ~~w;
+        w = fround(t2 - w)
+        p1 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i | 0) ? (j + 1) | 0 : i;
+        p2 = fround(HEAPF32[x + (j << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(p1 + fround(w * fround(p2 - p1)));
+      } while ((l | 0) > 0);
+    }
+
+    function sampleLinearRepeatA(d, x, t, i, l) {
+      d=d|0
+      x=x|0
+      t=t|0
+      i=i|0
+      l=l|0
+      var t2=fround(0), z=fround(0), j=0, w=fround(0), p1=fround(0), p2=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        t2 = fround(HEAPF32[t + (l << 2) >> 2]);
+        t2 = fround(t2 - fround(fround(floor(fround(t2 / fround(i|0)))) * fround(i + 1 | 0)));
+        w = fround(floor(+t2));
+        j = ~~w;
+        w = fround(t2 - w)
+        p1 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i | 0) ? (j + 1) | 0 : i;
+        p2 = fround(HEAPF32[x + (j << 2) >> 2]);
+        HEAPF32[d + (l << 2) >> 2] = fround(p1 + fround(w * fround(p2 - p1)));
+      } while ((l | 0) > 0);
+    }
+
+    function sampleCubicA(d, x, t, i, l) {
+      d=d|0
+      x=x|0
+      t=t|0
+      i=i|0
+      l=l|0
+      var t2=fround(0), z=fround(0), j=0, w=fround(0), w2=fround(0), w3=fround(0), h1=fround(0), h2=fround(0), h3=fround(0), h4=fround(0), p1=fround(0), p2=fround(0), p3=fround(0), p4=fround(0), r=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        t2 = fround(HEAPF32[t + (l << 2) >> 2]);
+        t2 = fround(t2 < z ? z : t2 > fround(i|0) ? fround(i|0) : t2)
+        w = fround(floor(+t2));
+        j = ~~w;
+        w = fround(t2 - w);
+        w2 = fround(w * w);
+        w3 = fround(w2 * w);
+        h2 = fround(fround(fround(-2) * w3) + fround(fround(3) * w2));
+        h1 = fround(fround(1) - h2);
+        h4 = fround(w3 - w2);
+        h3 = fround(h4 - fround(w2 + w));
+        p2 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) > 0 ? (j - 1) | 0 : i;
+        p1 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i | 0) ? (j + 1) | 0 : i;
+        p3 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i - 1 | 0) ? (j + 2) | 0 : i;
+        p4 = fround(HEAPF32[x + (j << 2) >> 2]);
+
+        h1 = fround(h1 * p2);
+        h2 = fround(h2 * p3);
+        h3 = fround(fround(0.5) * fround(h3 * fround(p3 -p1)));
+        h4 = fround(h4 * fround(p4 - p2));
+
+        HEAPF32[d + (l << 2) >> 2] = fround(h1 + fround(h2 + fround(h3 + h4)));
+      } while ((l | 0) > 0);
+    }
+
+    function sampleCubicRepeatA(d, x, t, i, l) {
+      d=d|0
+      x=x|0
+      t=t|0
+      i=i|0
+      l=l|0
+      var t2=fround(0), z=fround(0), j=0, w=fround(0), w2=fround(0), w3=fround(0), h1=fround(0), h2=fround(0), h3=fround(0), h4=fround(0), p1=fround(0), p2=fround(0), p3=fround(0), p4=fround(0), r=fround(0);
+
+      if ((l | 0) <= 0) {
+        return;
+      }
+
+      do {
+        l = l + -1 | 0;
+        t2 = fround(HEAPF32[t + (l << 2) >> 2]);
+        t2 = fround(t2 - fround(fround(floor(fround(t2 / fround(i|0)))) * fround(i + 1 | 0)));
+        w = fround(floor(+t2));
+        j = ~~w;
+        w = fround(t2 - w);
+        w2 = fround(w * w);
+        w3 = fround(w2 * w);
+        h2 = fround(fround(fround(-2) * w3) + fround(fround(3) * w2));
+        h1 = fround(fround(1) - h2);
+        h4 = fround(w3 - w2);
+        h3 = fround(h4 - fround(w2 + w));
+        p2 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) > 0 ? (j - 1) | 0 : i;
+        p1 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i | 0) ? (j + 1) | 0 : i;
+        p3 = fround(HEAPF32[x + (j << 2) >> 2]);
+        j = (j | 0) < (i - 1 | 0) ? (j + 2) | 0 : i;
+        p4 = fround(HEAPF32[x + (j << 2) >> 2]);
+
+        h1 = fround(h1 * p2);
+        h2 = fround(h2 * p3);
+        h3 = fround(fround(0.5) * fround(h3 * fround(p3 -p1)));
+        h4 = fround(h4 * fround(p4 - p2));
+
+        HEAPF32[d + (l << 2) >> 2] = fround(h1 + fround(h2 + fround(h3 + h4)));
+      } while ((l | 0) > 0);
+    }
+
     return { addA: addA
            , addS: addS
            , subA: subA
@@ -814,8 +1003,15 @@ var context = typeof module === 'undefined' ? self : module.exports;
            , sinA: sinA
            , sqrtA: sqrtA
            , tanA: tanA
+           , clampA: clampA
+           , fractA: fractA
            , rampA: rampA
            , signA: signA
+           , sumA: sumA
+           , sampleLinearA: sampleLinearA
+           , sampleLinearRepeatA: sampleLinearRepeatA
+           , sampleCubicA: sampleCubicA
+           , sampleCubicRepeatA: sampleCubicRepeatA
            }
   };
 
@@ -963,17 +1159,11 @@ var context = typeof module === 'undefined' ? self : module.exports;
   };
 
   ArrayMath.clamp = function (dst, x, xMin, xMax) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k) {
-      var val = x[k];
-      dst[k] = val < xMin ? xMin : val > xMax ? xMax : val;
-    }
+    ArrayMathAsm.clampA(dst.byteOffset, x.byteOffset, xMin, xMax, Math.min(dst.length, x.length));
   };
 
   ArrayMath.fract = function (dst, x) {
-    for (var k = Math.min(dst.length, x.length) - 1; k >= 0; --k) {
-      var val = x[k];
-      dst[k] = val - Math.floor(val);
-    }
+    ArrayMathAsm.fractA(dst.byteOffset, x.byteOffset, Math.min(dst.length, x.length));
   };
 
   ArrayMath.fill = function (dst, value) {
@@ -990,57 +1180,19 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
   ArrayMath.sum = function (x) {
     // TODO(m): We should use pairwise summation or similar here.
-    var ret = 0;
-    for (var k = x.length - 1; k >= 0; --k)
-      ret += x[k];
-    return ret;
+    return ArrayMathAsm.sumA(x.byteOffset, x.length);
   };
 
   ArrayMath.sampleLinear = function (dst, x, t) {
-    var xLen = x.length, maxIdx = xLen - 1;
-    for (var k = Math.min(dst.length, t.length) - 1; k >= 0; --k) {
-      var t2 = t[k];
-      t2 = t2 < 0 ? 0 : t2 > maxIdx ? maxIdx : t2;
-      var idx = Math.floor(t2);
-      var w = t2 - idx;
-      var p1 = x[idx];
-      var p2 = x[idx < maxIdx ? idx + 1 : maxIdx];
-      dst[k] = p1 + w * (p2 - p1);
-    }
+    ArrayMathAsm.sampleLinearA(dst.byteOffset, x.byteOffset, t.byteOffset, x.length - 1, Math.min(dst.length, t.length));
   };
 
   ArrayMath.sampleLinearRepeat = function (dst, x, t) {
-    var xLen = x.length, maxIdx = xLen - 1;
-    for (var k = Math.min(dst.length, t.length) - 1; k >= 0; --k) {
-      var t2 = t[k];
-      t2 = t2 - Math.floor(t2/xLen) * xLen;
-      var idx = Math.floor(t2);
-      var w = t2 - idx;
-      var p1 = x[idx];
-      var p2 = x[idx < maxIdx ? idx + 1 : 0];
-      dst[k] = p1 + w * (p2 - p1);
-    }
+    ArrayMathAsm.sampleLinearRepeatA(dst.byteOffset, x.byteOffset, t.byteOffset, x.length - 1, Math.min(dst.length, t.length));
   };
 
   ArrayMath.sampleCubic = function (dst, x, t) {
-    var xLen = x.length, maxIdx = xLen - 1;
-    for (var k = Math.min(dst.length, t.length) - 1; k >= 0; --k) {
-      var t2 = t[k];
-      t2 = t2 < 0 ? 0 : t2 > maxIdx ? maxIdx : t2;
-      var idx = Math.floor(t2);
-      var w = t2 - idx;
-      var w2 = w * w;
-      var w3 = w2 * w;
-      var h2 = -2*w3 + 3*w2;
-      var h1 = 1 - h2;
-      var h4 = w3 - w2;
-      var h3 = h4 - w2 + w;
-      var p1 = x[idx > 0 ? idx - 1 :  0];
-      var p2 = x[idx];
-      var p3 = x[idx < maxIdx ? idx + 1 : maxIdx];
-      var p4 = x[idx < maxIdx - 1 ? idx + 2 : maxIdx];
-      dst[k] = h1 * p2 + h2 * p3 + 0.5 * (h3 * (p3 - p1) + h4 * (p4 - p2));
-    }
+    ArrayMathAsm.sampleCubicA(dst.byteOffset, x.byteOffset, t.byteOffset, x.length - 1, Math.min(dst.length, t.length));
   };
 
   ArrayMath.sampleCubicRepeat = function (dst, x, t) {
