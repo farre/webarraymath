@@ -849,7 +849,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
             do {
                 l = l + -1 | 0;
                 t2 = fround(HEAPF32[t + (l << 2) >> 2]);
-                t2 = fround(t2 < z ? z : t2 > fround(i|0) ? fround(i|0) : t2)
+                t2 = fround(t2 < z ? z : t2 > fround(i|0) ? fround(i|0) : t2);
                 w = fround(floor(+t2));
                 j = ~~w;
                 w = fround(t2 - w)
@@ -1077,14 +1077,14 @@ var context = typeof module === 'undefined' ? self : module.exports;
                 scratch0Im = fround(scratch0Im * epi3Im);
 
                 // out[idx0] = out0 + scratch3
-                outRe[idx0] = fround(out0Re + scratch3Re);
-                outIm[idx0] = fround(out0Im + scratch3Im);
+                HEAPF32[outRe + (idx0 << 2) >> 2] = fround(out0Re + scratch3Re);
+                HEAPF32[outIm + (idx0 << 2) >> 2] = fround(out0Im + scratch3Im);
 
-                outRe[idx2] = fround(out1Re + scratch0Im);
-                outIm[idx2] = fround(out1Im - scratch0Re);
+                HEAPF32[outRe + (idx2 << 2) >> 2] = fround(out1Re + scratch0Im);
+                HEAPF32[outIm + (idx2 << 2) >> 2] = fround(out1Im - scratch0Re);
 
-                outRe[idx1] = fround(out1Re - scratch0Im);
-                outIm[idx1] = fround(out1Im + scratch0Re);
+                HEAPF32[outRe + (idx1 << 2) >> 2] = fround(out1Re - scratch0Im);
+                HEAPF32[outIm + (idx1 << 2) >> 2] = fround(out1Im + scratch0Re);
 
                 tw1 = tw1 + stride | 0;
                 tw2 = tw2 + stride | 0;
@@ -1094,48 +1094,158 @@ var context = typeof module === 'undefined' ? self : module.exports;
             }
         };
 
-        return { addA: addA
-                 , addS: addS
-                 , subA: subA
-                 , subS: subS
-                 , mulA: mulA
-                 , mulS: mulS
-                 , mulCplxA: mulCplxA
-                 , mulCplxS: mulCplxS
-                 , divA: divA
-                 , divS: divS
-                 , divCplxA: divCplxA
-                 , divCplxS: divCplxS
-                 , maddA: maddA
-                 , maddS: maddS
-                 , absA: absA
-                 , absCplxA: absCplxA
-                 , acosA: acosA
-                 , asinA: asinA
-                 , atanA: atanA
-                 , atan2A: atan2A
-                 , ceilA: ceilA
-                 , cosA: cosA
-                 , expA: expA
-                 , floorA: floorA
-                 , logA: logA
-                 , maxA: maxA
-                 , minA: minA
-                 , powA: powA
-                 , randomA: randomA
-                 , roundA: roundA
-                 , sinA: sinA
-                 , sqrtA: sqrtA
-                 , tanA: tanA
-                 , clampA: clampA
-                 , fractA: fractA
-                 , rampA: rampA
-                 , signA: signA
-                 , sumA: sumA
-                 , sampleLinearA: sampleLinearA
-                 , sampleLinearRepeatA: sampleLinearRepeatA
-                 , sampleCubicA: sampleCubicA
-                 , sampleCubicRepeatA: sampleCubicRepeatA
+        function butterfly4(outRe, outIm, outIdx, stride, twRe, twIm, m, inverse) {
+            outRe=outRe|0;
+            outIm=outIm|0;
+            outIdx=outIdx|0;
+            stride=stride|0;
+            twRe=twRe|0;
+            twIm=twIm|0;
+            m=m|0;
+            inverse=inverse|0;
+
+            var scratch0Re = fround(0), scratch0Im = fround(0), scratch1Re = fround(0),
+            scratch1Im = fround(0), scratch2Re = fround(0), scratch2Im = fround(0),
+            scratch3Re = fround(0), scratch3Im = fround(0), scratch4Re = fround(0),
+            scratch4Im = fround(0), scratch5Re = fround(0), scratch5Im = fround(0),
+            out0Re = fround(0), out0Im = fround(0), out1Re = fround(0), out1Im = fround(0),
+            out2Re = fround(0), out2Im = fround(0), out3Re = fround(0), out3Im = fround(0),
+            tRe = fround(0), tIm = fround(0), scale = fround(0.5);
+
+            var tw1 = 0, tw2 = 0, tw3 = 0, stride2 = 0, stride3 = 0,
+            idx0 = 0, idx1 = 0, idx2 = 0, idx3 = 0,
+            idx0End = 0;
+
+            stride2 = 2 * stride|0;
+            stride3 = 3 * stride|0;
+            idx0 = outIdx;
+            idx1 = outIdx + m|0;
+            idx2 = outIdx + (2 * m|0)|0;
+            idx3 = outIdx + (3 * m|0)|0;
+            idx0End = idx0 + m|0;
+
+            while ((idx0 | 0) < (idx0End | 0)) {
+                // out0 = out[idx0] / sqrt(4)
+                out0Re = fround(fround(HEAPF32[outRe + (idx0 << 2) >> 2]) * scale);
+                out0Re = fround(fround(HEAPF32[outRe + (idx0 << 2) >> 2]) * scale);
+                out0Im = fround(fround(HEAPF32[outIm + (idx0 << 2) >> 2]) * scale);
+                // out1 = out[idx1] / sqrt(4)
+                out1Re = fround(fround(HEAPF32[outRe + (idx1 << 2) >> 2]) * scale);
+                out1Im = fround(fround(HEAPF32[outIm + (idx1 << 2) >> 2]) * scale);
+                // out2 = out[idx2] / sqrt(4)
+                out2Re = fround(fround(HEAPF32[outRe + (idx2 << 2) >> 2]) * scale);
+                out2Im = fround(fround(HEAPF32[outIm + (idx2 << 2) >> 2]) * scale);
+                // out3 = out[idx3] / sqrt(4)
+                out3Re = fround(fround(HEAPF32[outRe + (idx3 << 2) >> 2]) * scale);
+                out3Im = fround(fround(HEAPF32[outIm + (idx3 << 2) >> 2]) * scale);
+
+                // scratch0 = out1 * tw[tw1]
+                tRe = fround(HEAPF32[twRe + (tw1 << 2) >> 2]);
+                tIm = fround(HEAPF32[twIm + (tw1 << 2) >> 2]);
+                scratch0Re = fround(fround(out1Re * tRe) - fround(out1Im * tIm));
+                scratch0Im = fround(fround(out1Re * tIm) + fround(out1Im * tRe));
+
+                // scratch1 = out2 * tw[tw2]
+                tRe = fround(HEAPF32[twRe + (tw2 << 2) >> 2]);
+                tIm = fround(HEAPF32[twIm + (tw2 << 2) >> 2]);
+                scratch1Re = fround(fround(out2Re * tRe) - fround(out2Im * tIm));
+                scratch1Im = fround(fround(out2Re * tIm) + fround(out2Im * tRe));
+
+                // scratch2 = out3 * tw[tw3]
+                tRe = fround(HEAPF32[twRe + (tw3 << 2) >> 2]);
+                tIm = fround(HEAPF32[twIm + (tw3 << 2) >> 2]);
+                scratch2Re = fround(fround(out3Re * tRe) - fround(out3Im * tIm));
+                scratch2Im = fround(fround(out3Re * tIm) + fround(out3Im * tRe));
+
+                // scratch5 = out0 - scratch1
+                scratch5Re = fround(out0Re - scratch1Re);
+                scratch5Im = fround(out0Im - scratch1Im);
+
+                // out0 += scratch1
+                out0Re = fround(out0Re + scratch1Re);
+                out0Im = fround(out0Im + scratch1Im);
+
+                // scratch3 = scratch0 + scratch2
+                scratch3Re = fround(scratch0Re + scratch2Re);
+                scratch3Im = fround(scratch0Im + scratch2Im);
+
+                // scratch4 = scratch0 - scratch2
+                scratch4Re = fround(scratch0Re - scratch2Re);
+                scratch4Im = fround(scratch0Im - scratch2Im);
+
+                // out[idx2] = out0 - scratch3
+                HEAPF32[outRe + (idx2 << 2) >> 2] = fround(out0Re - scratch3Re);
+                HEAPF32[outIm + (idx2 << 2) >> 2] = fround(out0Im - scratch3Im);
+
+                // out[idx0] = out0 + scratch3
+                HEAPF32[outRe + (idx0 << 2) >> 2] = fround(out0Re + scratch3Re);
+                HEAPF32[outIm + (idx0 << 2) >> 2] = fround(out0Im + scratch3Im);
+
+                if ((inverse|0) != 0) {
+                    HEAPF32[outRe + (idx1 << 2) >> 2] = fround(scratch5Re - scratch4Im);
+                    HEAPF32[outIm + (idx1 << 2) >> 2] = fround(scratch5Im + scratch4Re);
+                    HEAPF32[outRe + (idx3 << 2) >> 2] = fround(scratch5Re + scratch4Im);
+                    HEAPF32[outIm + (idx3 << 2) >> 2] = fround(scratch5Im - scratch4Re);
+                }
+                else {
+                    HEAPF32[outRe + (idx1 << 2) >> 2] = fround(scratch5Re + scratch4Im);
+                    HEAPF32[outIm + (idx1 << 2) >> 2] = fround(scratch5Im - scratch4Re);
+                    HEAPF32[outRe + (idx3 << 2) >> 2] = fround(scratch5Re - scratch4Im);
+                    HEAPF32[outIm + (idx3 << 2) >> 2] = fround(scratch5Im + scratch4Re);
+                }
+
+                tw1 = tw1 + stride | 0;
+                tw2 = tw2 + stride2 | 0;
+                tw3 = tw3 + stride3 | 0;
+                idx0 = idx0 + 1 | 0;
+                idx1 = idx1 + 1 | 0;
+                idx2 = idx2 + 1 | 0;
+                idx3 = idx3 + 1 | 0;
+            }
+        };
+
+        return { addA: addA,
+                 addS: addS,
+                 subA: subA,
+                 subS: subS,
+                 mulA: mulA,
+                 mulS: mulS,
+                 mulCplxA: mulCplxA,
+                 mulCplxS: mulCplxS,
+                 divA: divA,
+                 divS: divS,
+                 divCplxA: divCplxA,
+                 divCplxS: divCplxS,
+                 maddA: maddA,
+                 maddS: maddS,
+                 absA: absA,
+                 absCplxA: absCplxA,
+                 acosA: acosA,
+                 asinA: asinA,
+                 atanA: atanA,
+                 atan2A: atan2A,
+                 ceilA: ceilA,
+                 cosA: cosA,
+                 expA: expA,
+                 floorA: floorA,
+                 logA: logA,
+                 maxA: maxA,
+                 minA: minA,
+                 powA: powA,
+                 randomA: randomA,
+                 roundA: roundA,
+                 sinA: sinA,
+                 sqrtA: sqrtA,
+                 tanA: tanA,
+                 clampA: clampA,
+                 fractA: fractA,
+                 rampA: rampA,
+                 signA: signA,
+                 sumA: sumA,
+                 sampleLinearA: sampleLinearA,
+                 sampleLinearRepeatA: sampleLinearRepeatA,
+                 sampleCubicA: sampleCubicA,
+                 sampleCubicRepeatA: sampleCubicRepeatA,
                }
     };
 
