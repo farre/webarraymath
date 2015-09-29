@@ -1204,6 +1204,198 @@ var context = typeof module === 'undefined' ? self : module.exports;
             }
         };
 
+        function butterfly5(outRe, outIm, outIdx, stride, twRe, twIm, m) {
+            outRe=outRe|0;
+            outIm=outIm|0;
+            outIdx=outIdx|0;
+            stride=stride|0;
+            twRe=twRe|0;
+            twIm=twIm|0;
+            m=m|0;
+
+            var scratch0Re = fround(0), scratch0Im = fround(0), scratch1Re = fround(0),
+            scratch1Im = fround(0), scratch2Re = fround(0), scratch2Im = fround(0),
+            scratch3Re = fround(0), scratch3Im = fround(0), scratch4Re = fround(0),
+            scratch4Im = fround(0), scratch5Re = fround(0), scratch5Im = fround(0),
+            scratch6Re = fround(0), scratch6Im = fround(0), scratch7Re = fround(0),
+            scratch7Im = fround(0), scratch8Re = fround(0), scratch8Im = fround(0),
+            scratch9Re = fround(0), scratch9Im = fround(0), scratch10Re = fround(0),
+            scratch10Im = fround(0), scratch11Re = fround(0), scratch11Im = fround(0),
+            scratch12Re = fround(0), scratch12Im = fround(0), out0Re = fround(0),
+            out0Im = fround(0), out1Re = fround(0), out1Im = fround(0), out2Re = fround(0),
+            out2Im = fround(0), out3Re = fround(0), out3Im = fround(0), out4Re = fround(0),
+            out4Im = fround(0), tRe = fround(0), tIm = fround(0), yaRe = fround(0),
+            yaIm = fround(0), ybRe= fround(0), ybIm = fround(0), scale = fround(0.4472135954999579);
+
+            // 0.4472135954999579 ==  sqrt(1/5)
+
+            var tw1 = 0, tw2 = 0, tw3 = 0, tw4 = 0, stride2 = 0, stride3 = 0, stride4 = 0,
+            idx0 = 0, idx1 = 0, idx2 = 0, idx3 = 0, idx4 = 0, idx0End = 0;
+
+            stride2 = stride * 2 | 0;
+            stride3 = stride * 3 | 0;
+            stride4 = stride * 4 | 0;
+
+            idx0 = outIdx | 0;
+            idx1 = outIdx + m | 0;
+            idx2 = outIdx + (2 * m | 0) | 0;
+            idx3 = outIdx + (3 * m | 0) | 0;
+            idx4 = outIdx + (4 * m | 0) | 0;
+
+            // ya = tw[stride*m];
+            yaRe = fround(HEAPF32[twRe + (imul(stride, m) << 2) >> 2]);
+            yaIm = fround(HEAPF32[twIm + (imul(stride, m) << 2) >> 2]);
+            // yb = tw[stride*2*m];
+            ybRe = fround(HEAPF32[twRe + (imul(stride, 2 * m) << 2) >> 2]);
+            ybIm = fround(HEAPF32[twIm + (imul(stride, 2 * m) << 2) >> 2]);
+
+            idx0End = idx0 + m | 0;
+
+            while ((idx0 | 0) < (idx0End | 0)) {
+                // out0 = out[idx0] / sqrt(5)
+                out0Re = fround(fround(HEAPF32[outRe + (idx0 << 2) >> 2]) * scale);
+                out0Im = fround(fround(HEAPF32[outIm + (idx0 << 2) >> 2]) * scale);
+                // out1 = out[idx1] / sqrt(5)
+                out1Re = fround(fround(HEAPF32[outRe + (idx1 << 2) >> 2]) * scale);
+                out1Im = fround(fround(HEAPF32[outIm + (idx1 << 2) >> 2]) * scale);
+                // out2 = out[idx2] / sqrt(5)
+                out2Re = fround(fround(HEAPF32[outRe + (idx2 << 2) >> 2]) * scale);
+                out2Im = fround(fround(HEAPF32[outIm + (idx2 << 2) >> 2]) * scale);
+                // out3 = out[idx3] / sqrt(5)
+                out3Re = fround(fround(HEAPF32[outRe + (idx3 << 2) >> 2]) * scale);
+                out3Im = fround(fround(HEAPF32[outIm + (idx3 << 2) >> 2]) * scale);
+                // out4 = out[idx4] / sqrt(5)
+                out4Re = fround(fround(HEAPF32[outRe + (idx4 << 2) >> 2]) * scale);
+                out4Im = fround(fround(HEAPF32[outIm + (idx4 << 2) >> 2]) * scale);
+
+                // scratch0 = out0;
+                scratch0Re = out0Re;
+                scratch0Im = out0Im;
+
+                // scratch1 = out1 * tw[tw1]
+                tRe = fround(fround(HEAPF32[twRe + (tw1 << 2) >> 2]));
+                tIm = fround(fround(HEAPF32[twIm + (tw1 << 2) >> 2]));
+                scratch1Re = fround(fround(out1Re * tRe) - fround(out1Im * tIm));
+                scratch1Im = fround(fround(out1Re * tIm) + fround(out1Im * tRe));
+                // scratch2 = out2 * tw[tw2]
+                tRe = fround(fround(HEAPF32[twRe + (tw2 << 2) >> 2]));
+                tIm = fround(fround(HEAPF32[twIm + (tw2 << 2) >> 2]));
+                scratch2Re = fround(fround(out2Re * tRe) - fround(out2Im * tIm));
+                scratch2Im = fround(fround(out2Re * tIm) + fround(out2Im * tRe));
+                // scratch3 = out3 * tw[tw3]
+                tRe = fround(fround(HEAPF32[twRe + (tw3 << 2) >> 2]));
+                tIm = fround(fround(HEAPF32[twIm + (tw3 << 2) >> 2]));
+                scratch3Re = fround(fround(out3Re * tRe) - fround(out3Im * tIm));
+                scratch3Im = fround(fround(out3Re * tIm) + fround(out3Im * tRe));
+                // scratch4 = out4 * tw[tw4]
+                tRe = fround(fround(HEAPF32[twRe + (tw4 << 2) >> 2]));
+                tIm = fround(fround(HEAPF32[twIm + (tw4 << 2) >> 2]));
+                scratch4Re = fround(fround(out4Re * tRe) - fround(out4Im * tIm));
+                scratch4Im = fround(fround(out4Re * tIm) + fround(out4Im * tRe));
+
+                // scratch7 = scratch1 + scratch4
+                scratch7Re = fround(scratch1Re + scratch4Re);
+                scratch7Im = fround(scratch1Im + scratch4Im);
+                // scratch10 = scratch1 - scratch4
+                scratch10Re = fround(scratch1Re - scratch4Re);
+                scratch10Im = fround(scratch1Im - scratch4Im);
+                // scratch8 = scratch2 + scratch2
+                scratch8Re = fround(scratch2Re + scratch3Re);
+                scratch8Im = fround(scratch2Im + scratch3Im);
+                // scratch9 = scratch2 - scratch3
+                scratch9Re = fround(scratch2Re - scratch3Re);
+                scratch9Im = fround(scratch2Im - scratch3Im);
+
+                // out[idx0] = out0 + scratch7 + scratch8
+                HEAPF32[outRe + (idx0 << 2) >> 2] = fround(out0Re + fround(scratch7Re + scratch8Re));
+                HEAPF32[outIm + (idx0 << 2) >> 2] = fround(out0Im + fround(scratch7Im + scratch8Im));
+
+                scratch5Re = fround(scratch0Re + fround(fround(scratch7Re * yaRe) + fround(scratch8Re * ybRe)));
+                scratch5Im = fround(scratch0Im + fround(fround(scratch7Im * yaRe) + fround(scratch8Im * ybRe)));
+
+                scratch6Re = fround(fround(scratch10Im * yaIm) + fround(scratch9Im * ybIm));
+                scratch6Im = fround(fround(fround(-scratch10Re) * yaIm) - fround(scratch9Re * ybIm));
+
+                // out[idx1] = scratch5 - scratch6
+                HEAPF32[outRe + (idx1 << 2) >> 2] = fround(scratch5Re - scratch6Re);
+                HEAPF32[outIm + (idx1 << 2) >> 2] = fround(scratch5Im - scratch6Im);
+                // out[idx4] = scratch5 + scratch6
+                HEAPF32[outRe + (idx4 << 2) >> 2] = fround(scratch5Re + scratch6Re);
+                HEAPF32[outIm + (idx4 << 2) >> 2] = fround(scratch5Im + scratch6Im);
+
+                scratch11Re = fround(scratch0Re + fround(fround(scratch7Re * ybRe) + fround(scratch8Re * yaRe)));
+                scratch11Im = fround(scratch0Im + fround(fround(scratch7Im * ybRe) + fround(scratch8Im * yaRe)));
+
+                scratch12Re = fround(fround(fround(-scratch10Im) * ybIm) + fround(scratch9Im * yaIm));
+                scratch12Im = fround(fround(scratch10Re * ybIm) - fround(scratch9Re * yaIm));
+
+                // out[idx2] = scratch11 + scratch12
+                HEAPF32[outRe + (idx2 << 2) >> 2] = fround(scratch11Re + scratch12Re);
+                HEAPF32[outIm + (idx2 << 2) >> 2] = fround(scratch11Im + scratch12Im);
+                // out[idx3] = scratch11 - scratch12
+                HEAPF32[outRe + (idx3 << 2) >> 2] = fround(scratch11Re - scratch12Re);
+                HEAPF32[outIm + (idx3 << 2) >> 2] = fround(scratch11Im - scratch12Im);
+
+                tw1 = tw1 + stride | 0;
+                tw2 = tw2 + stride2 | 0;
+                tw3 = tw3 + stride3 | 0;
+                tw4 = tw4 + stride4 | 0;
+                idx0 = idx0 + 1 | 0;
+                idx1 = idx1 + 1 | 0;
+                idx2 = idx2 + 1 | 0;
+                idx3 = idx3 + 1 | 0;
+                idx4 = idx4 + 1 | 0;
+            }
+        };
+
+        function butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size) {
+            var u, q1, q, idx0;
+            var out0Re, out0Im, aRe, aIm, tRe, tIm;
+
+            // FIXME: Allocate statically
+            var scratchRe = new Float32Array(p);
+            var scratchIm = new Float32Array(p);
+
+            var scale = Math.sqrt(1 / p);
+            for (u = 0; u < m; ++u) {
+                idx0 = outIdx + u;
+                for (q1 = 0; q1 < p; ++q1) {
+                    // scratch[q1] = out[idx0] / sqrt(p)
+                    scratchRe[q1] = outRe[idx0] * scale;
+                    scratchIm[q1] = outIm[idx0] * scale;
+                    idx0 += m;
+                }
+
+                idx0 = outIdx + u;
+                var tw1Incr = stride * u;
+                for (q1 = 0; q1 < p; ++q1) {
+                    // out0 = scratch[0]
+                    out0Re = scratchRe[0];
+                    out0Im = scratchIm[0];
+
+                    var tw1 = 0;
+                    for (q = 1; q < p; ++q) {
+                        tw1 += tw1Incr;
+                        if (tw1 >= size)
+                            tw1 -= size;
+
+                        // out0 += scratch[q] * tw[tw1]
+                        aRe = scratchRe[q], aIm = scratchIm[q];
+                        tRe = twRe[tw1], tIm = twIm[tw1];
+                        out0Re += aRe * tRe - aIm * tIm;
+                        out0Im += aRe * tIm + aIm * tRe;
+                    }
+
+                    // out[idx0] = out0
+                    outRe[idx0] = out0Re;
+                    outIm[idx0] = out0Im;
+
+                    idx0 += m;
+                    tw1Incr += stride;
+                }
+            }
+        };
+
         return { addA: addA,
                  addS: addS,
                  subA: subA,
@@ -1670,318 +1862,6 @@ var context = typeof module === 'undefined' ? self : module.exports;
 (function () {
     if (context.FFT) return;
 
-    var butterfly2 = function (outRe, outIm, outIdx, stride, twRe, twIm, m) {
-        var scratch0Re, scratch0Im,
-        out0Re, out0Im, out1Re, out1Im,
-        tRe, tIm;
-
-        var tw1 = 0,
-        idx0 = outIdx,
-        idx1 = outIdx + m;
-
-        var scale = 0.7071067811865475; // sqrt(1/2)
-        var idx0End = idx0 + m;
-        while (idx0 < idx0End) {
-            // out0 = out[idx0] / sqrt(2)
-            out0Re = outRe[idx0] * scale;
-            out0Im = outIm[idx0] * scale;
-            // out1 = out[idx1] / sqrt(2)
-            out1Re = outRe[idx1] * scale;
-            out1Im = outIm[idx1] * scale;
-
-            // scratch0 = out1 * tw[tw1]
-            tRe = twRe[tw1]; tIm = twIm[tw1];
-            scratch0Re = out1Re * tRe - out1Im * tIm;
-            scratch0Im = out1Re * tIm + out1Im * tRe;
-
-            // out[idx1] = out0 - scratch0
-            outRe[idx1] = out0Re - scratch0Re;
-            outIm[idx1] = out0Im - scratch0Im;
-
-            // out[idx0] = out0 + scratch0
-            outRe[idx0] = out0Re + scratch0Re;
-            outIm[idx0] = out0Im + scratch0Im;
-
-            tw1 += stride;
-            ++idx0; ++idx1;
-        }
-    };
-
-    var butterfly3 = function (outRe, outIm, outIdx, stride, twRe, twIm, m) {
-        var scratch0Re, scratch0Im, scratch1Re, scratch1Im,
-        scratch2Re, scratch2Im, scratch3Re, scratch3Im,
-        out0Re, out0Im, out1Re, out1Im, out2Re, out2Im,
-        tRe, tIm;
-
-        var tw1 = 0,
-        tw2 = 0,
-        stride2 = 2 * stride,
-        idx0 = outIdx,
-        idx1 = outIdx + m,
-        idx2 = outIdx + 2 * m;
-
-        var epi3Im = twIm[stride*m];
-
-        var scale = 0.5773502691896258; // sqrt(1/3)
-        var idx0End = idx0 + m;
-        while (idx0 < idx0End) {
-            // out0 = out[idx0] / sqrt(3)
-            out0Re = outRe[idx0] * scale;
-            out0Im = outIm[idx0] * scale;
-            // out1 = out[idx1] / sqrt(3)
-            out1Re = outRe[idx1] * scale;
-            out1Im = outIm[idx1] * scale;
-            // out2 = out[idx2] / sqrt(3)
-            out2Re = outRe[idx2] * scale;
-            out2Im = outIm[idx2] * scale;
-
-            // scratch1 = out1 * tw[tw1]
-            tRe = twRe[tw1]; tIm = twIm[tw1];
-            scratch1Re = out1Re * tRe - out1Im * tIm;
-            scratch1Im = out1Re * tIm + out1Im * tRe;
-
-            // scratch2 = out2 * tw[tw2]
-            tRe = twRe[tw2]; tIm = twIm[tw2];
-            scratch2Re = out2Re * tRe - out2Im * tIm;
-            scratch2Im = out2Re * tIm + out2Im * tRe;
-
-            // scratch3 = scratch1 + scratch2
-            scratch3Re = scratch1Re + scratch2Re;
-            scratch3Im = scratch1Im + scratch2Im;
-
-            // scratch0 = scratch1 - scratch2
-            scratch0Re = scratch1Re - scratch2Re;
-            scratch0Im = scratch1Im - scratch2Im;
-
-            // out1 = out0 - scratch3 / 2
-            out1Re = out0Re - scratch3Re * 0.5;
-            out1Im = out0Im - scratch3Im * 0.5;
-
-            // scratch0 *= epi3.i
-            scratch0Re *= epi3Im;
-            scratch0Im *= epi3Im;
-
-            // out[idx0] = out0 + scratch3
-            outRe[idx0] = out0Re + scratch3Re;
-            outIm[idx0] = out0Im + scratch3Im;
-
-            outRe[idx2] = out1Re + scratch0Im;
-            outIm[idx2] = out1Im - scratch0Re;
-
-            outRe[idx1] = out1Re - scratch0Im;
-            outIm[idx1] = out1Im + scratch0Re;
-
-            tw1 += stride; tw2 += stride2;
-            ++idx0; ++idx1; ++idx2;
-        }
-    };
-
-    var butterfly4 = function (outRe, outIm, outIdx, stride, twRe, twIm, m, inverse) {
-        var scratch0Re, scratch0Im, scratch1Re, scratch1Im, scratch2Re, scratch2Im,
-        scratch3Re, scratch3Im, scratch4Re, scratch4Im, scratch5Re, scratch5Im,
-        out0Re, out0Im, out1Re, out1Im, out2Re, out2Im, out3Re, out3Im,
-        tRe, tIm;
-
-        var tw1 = 0,
-        tw2 = 0,
-        tw3 = 0,
-        stride2 = 2 * stride,
-        stride3 = 3 * stride,
-        idx0 = outIdx,
-        idx1 = outIdx + m,
-        idx2 = outIdx + 2 * m,
-        idx3 = outIdx + 3 * m;
-
-        var scale = 0.5; // sqrt(1/4)
-        var idx0End = idx0 + m;
-        while (idx0 < idx0End) {
-            // out0 = out[idx0] / sqrt(4)
-            out0Re = outRe[idx0] * scale;
-            out0Im = outIm[idx0] * scale;
-            // out1 = out[idx1] / sqrt(4)
-            out1Re = outRe[idx1] * scale;
-            out1Im = outIm[idx1] * scale;
-            // out2 = out[idx2] / sqrt(4)
-            out2Re = outRe[idx2] * scale;
-            out2Im = outIm[idx2] * scale;
-            // out3 = out[idx3] / sqrt(4)
-            out3Re = outRe[idx3] * scale;
-            out3Im = outIm[idx3] * scale;
-
-            // scratch0 = out1 * tw[tw1]
-            tRe = twRe[tw1]; tIm = twIm[tw1];
-            scratch0Re = out1Re * tRe - out1Im * tIm;
-            scratch0Im = out1Re * tIm + out1Im * tRe;
-
-            // scratch1 = out2 * tw[tw2]
-            tRe = twRe[tw2]; tIm = twIm[tw2];
-            scratch1Re = out2Re * tRe - out2Im * tIm;
-            scratch1Im = out2Re * tIm + out2Im * tRe;
-
-            // scratch2 = out3 * tw[tw3]
-            tRe = twRe[tw3]; tIm = twIm[tw3];
-            scratch2Re = out3Re * tRe - out3Im * tIm;
-            scratch2Im = out3Re * tIm + out3Im * tRe;
-
-            // scratch5 = out0 - scratch1
-            scratch5Re = out0Re - scratch1Re;
-            scratch5Im = out0Im - scratch1Im;
-
-            // out0 += scratch1
-            out0Re += scratch1Re;
-            out0Im += scratch1Im;
-
-            // scratch3 = scratch0 + scratch2
-            scratch3Re = scratch0Re + scratch2Re;
-            scratch3Im = scratch0Im + scratch2Im;
-
-            // scratch4 = scratch0 - scratch2
-            scratch4Re = scratch0Re - scratch2Re;
-            scratch4Im = scratch0Im - scratch2Im;
-
-            // out[idx2] = out0 - scratch3
-            outRe[idx2] = out0Re - scratch3Re;
-            outIm[idx2] = out0Im - scratch3Im;
-
-            // out[idx0] = out0 + scratch3
-            outRe[idx0] = out0Re + scratch3Re;
-            outIm[idx0] = out0Im + scratch3Im;
-
-            if (inverse) {
-                outRe[idx1] = scratch5Re - scratch4Im;
-                outIm[idx1] = scratch5Im + scratch4Re;
-                outRe[idx3] = scratch5Re + scratch4Im;
-                outIm[idx3] = scratch5Im - scratch4Re;
-            }
-            else {
-                outRe[idx1] = scratch5Re + scratch4Im;
-                outIm[idx1] = scratch5Im - scratch4Re;
-                outRe[idx3] = scratch5Re - scratch4Im;
-                outIm[idx3] = scratch5Im + scratch4Re;
-            }
-
-            tw1 += stride; tw2 += stride2; tw3 += stride3;
-            ++idx0; ++idx1; ++idx2; ++idx3;
-        }
-    };
-
-    var butterfly5 = function (outRe, outIm, outIdx, stride, twRe, twIm, m) {
-        var scratch0Re, scratch0Im, scratch1Re, scratch1Im, scratch2Re, scratch2Im,
-        scratch3Re, scratch3Im, scratch4Re, scratch4Im, scratch5Re, scratch5Im,
-        scratch6Re, scratch6Im, scratch7Re, scratch7Im, scratch8Re, scratch8Im,
-        scratch9Re, scratch9Im, scratch10Re, scratch10Im, scratch11Re, scratch11Im,
-        scratch12Re, scratch12Im,
-        out0Re, out0Im, out1Re, out1Im, out2Re, out2Im, out3Re, out3Im, out4Re, out4Im,
-        tRe, tIm;
-
-        var tw1 = 0,
-        tw2 = 0,
-        tw3 = 0,
-        tw4 = 0,
-        stride2 = 2 * stride,
-        stride3 = 3 * stride,
-        stride4 = 4 * stride;
-
-        var idx0 = outIdx,
-        idx1 = outIdx + m,
-        idx2 = outIdx + 2 * m,
-        idx3 = outIdx + 3 * m,
-        idx4 = outIdx + 4 * m;
-
-        // ya = tw[stride*m];
-        var yaRe = twRe[stride * m],
-        yaIm = twIm[stride * m];
-        // yb = tw[stride*2*m];
-        var ybRe = twRe[stride * 2 * m],
-        ybIm = twIm[stride * 2 * m];
-
-        var scale = 0.4472135954999579; // sqrt(1/5)
-        var idx0End = idx0 + m;
-        while (idx0 < idx0End) {
-            // out0 = out[idx0] / sqrt(5)
-            out0Re = outRe[idx0] * scale;
-            out0Im = outIm[idx0] * scale;
-            // out1 = out[idx1] / sqrt(5)
-            out1Re = outRe[idx1] * scale;
-            out1Im = outIm[idx1] * scale;
-            // out2 = out[idx2] / sqrt(5)
-            out2Re = outRe[idx2] * scale;
-            out2Im = outIm[idx2] * scale;
-            // out3 = out[idx3] / sqrt(5)
-            out3Re = outRe[idx3] * scale;
-            out3Im = outIm[idx3] * scale;
-            // out4 = out[idx4] / sqrt(5)
-            out4Re = outRe[idx4] * scale;
-            out4Im = outIm[idx4] * scale;
-
-            // scratch0 = out0;
-            scratch0Re = out0Re;
-            scratch0Im = out0Im;
-
-            // scratch1 = out1 * tw[tw1]
-            tRe = twRe[tw1]; tIm = twIm[tw1];
-            scratch1Re = out1Re * tRe - out1Im * tIm;
-            scratch1Im = out1Re * tIm + out1Im * tRe;
-            // scratch2 = out2 * tw[tw2]
-            tRe = twRe[tw2]; tIm = twIm[tw2];
-            scratch2Re = out2Re * tRe - out2Im * tIm;
-            scratch2Im = out2Re * tIm + out2Im * tRe;
-            // scratch3 = out3 * tw[tw3]
-            tRe = twRe[tw3]; tIm = twIm[tw3];
-            scratch3Re = out3Re * tRe - out3Im * tIm;
-            scratch3Im = out3Re * tIm + out3Im * tRe;
-            // scratch4 = out4 * tw[tw4]
-            tRe = twRe[tw4]; tIm = twIm[tw4];
-            scratch4Re = out4Re * tRe - out4Im * tIm;
-            scratch4Im = out4Re * tIm + out4Im * tRe;
-
-            // scratch7 = scratch1 + scratch4
-            scratch7Re = scratch1Re + scratch4Re;
-            scratch7Im = scratch1Im + scratch4Im;
-            // scratch10 = scratch1 - scratch4
-            scratch10Re = scratch1Re - scratch4Re;
-            scratch10Im = scratch1Im - scratch4Im;
-            // scratch8 = scratch2 + scratch2
-            scratch8Re = scratch2Re + scratch3Re;
-            scratch8Im = scratch2Im + scratch3Im;
-            // scratch9 = scratch2 - scratch3
-            scratch9Re = scratch2Re - scratch3Re;
-            scratch9Im = scratch2Im - scratch3Im;
-
-            // out[idx0] = out0 + scratch7 + scratch8
-            outRe[idx0] = out0Re + scratch7Re + scratch8Re;
-            outIm[idx0] = out0Im + scratch7Im + scratch8Im;
-
-            scratch5Re = scratch0Re + scratch7Re * yaRe + scratch8Re * ybRe;
-            scratch5Im = scratch0Im + scratch7Im * yaRe + scratch8Im * ybRe;
-
-            scratch6Re = scratch10Im * yaIm + scratch9Im * ybIm;
-            scratch6Im = -scratch10Re * yaIm - scratch9Re * ybIm;
-
-            // out[idx1] = scratch5 - scratch6
-            outRe[idx1] = scratch5Re - scratch6Re;
-            outIm[idx1] = scratch5Im - scratch6Im;
-            // out[idx4] = scratch5 + scratch6
-            outRe[idx4] = scratch5Re + scratch6Re;
-            outIm[idx4] = scratch5Im + scratch6Im;
-
-            scratch11Re = scratch0Re + scratch7Re * ybRe + scratch8Re * yaRe;
-            scratch11Im = scratch0Im + scratch7Im * ybRe + scratch8Im * yaRe;
-
-            scratch12Re = -scratch10Im * ybIm + scratch9Im * yaIm;
-            scratch12Im = scratch10Re * ybIm - scratch9Re * yaIm;
-
-            // out[idx2] = scratch11 + scratch12
-            outRe[idx2] = scratch11Re + scratch12Re;
-            outIm[idx2] = scratch11Im + scratch12Im;
-            // out[idx3] = scratch11 - scratch12
-            outRe[idx3] = scratch11Re - scratch12Re;
-            outIm[idx3] = scratch11Im - scratch12Im;
-
-            tw1 += stride; tw2 += stride2; tw3 += stride3; tw4 += stride4;
-            ++idx0; ++idx1; ++idx2; ++idx3; ++idx4;
-        }
-    };
 
     var butterflyN = function (outRe, outIm, outIdx, stride, twRe, twIm, m, p, size) {
         var u, q1, q, idx0;
