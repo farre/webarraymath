@@ -74,7 +74,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) + fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2] + HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -92,7 +92,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(x + fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(x + HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -112,7 +112,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) - fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2] - HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -130,7 +130,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(x - fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(x - HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -148,7 +148,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(fround(HEAPF32[x + (l << 2) >> 2]) * fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(HEAPF32[x + (l << 2) >> 2] * HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -166,7 +166,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             do {
                 l = l + -1 | 0;
-                HEAPF32[d + (l << 2) >> 2] = fround(x * fround(HEAPF32[y + (l << 2) >> 2]));
+                HEAPF32[d + (l << 2) >> 2] = fround(x * HEAPF32[y + (l << 2) >> 2]);
             } while ((l | 0) > 0);
 
             return;
@@ -1348,51 +1348,76 @@ var context = typeof module === 'undefined' ? self : module.exports;
             }
         };
 
-        function butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size) {
-            var u, q1, q, idx0;
-            var out0Re, out0Im, aRe, aIm, tRe, tIm;
+        function butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size, scratchRe, scratchIm) {
+            outRe=outRe|0;
+            outIm=outIm|0;
+            outIdx=outIdx|0;
+            stride=stride|0;
+            twRe=twRe|0;
+            twIm=twIm|0;
+            m=m|0;
+            p=p|0;
+            size=size|0;
+            scratchRe=scratchRe|0;
+            scratchIm=scratchIm|0;
 
-            // FIXME: Allocate statically
-            var scratchRe = new Float32Array(p);
-            var scratchIm = new Float32Array(p);
+            var out0Re = fround(0), out0Im = fround(0), aRe = fround(0),
+            aIm = fround(0), tRe = fround(0), tIm = fround(0), scale = fround(0);
 
-            var scale = Math.sqrt(1 / p);
-            for (u = 0; u < m; ++u) {
-                idx0 = outIdx + u;
-                for (q1 = 0; q1 < p; ++q1) {
+            var u = 0, q1 = 0, q = 0, idx0 = 0, tw1 = 0, tw1Incr = 0;
+
+            scale = fround(sqrt(fround(fround(1) / fround(p >>> 0))));
+
+            while ((u | 0) < (m | 0)) {
+                idx0 = outIdx + u | 0;
+
+                while ((q1 | 0) < (p | 0)) {
                     // scratch[q1] = out[idx0] / sqrt(p)
-                    scratchRe[q1] = outRe[idx0] * scale;
-                    scratchIm[q1] = outIm[idx0] * scale;
-                    idx0 += m;
+                    HEAPF32[scratchRe + (q1 << 2) >> 2] = fround(HEAPF32[outRe + (idx0 << 2) >> 2] * scale);
+                    HEAPF32[scratchIm + (q1 << 2) >> 2] = fround(HEAPF32[outIm  + (idx0 << 2) >> 2] * scale);
+                    idx0 = idx0 + m | 0;
+                    q1 = q1 + 1 | 0;
                 }
 
-                idx0 = outIdx + u;
-                var tw1Incr = stride * u;
-                for (q1 = 0; q1 < p; ++q1) {
-                    // out0 = scratch[0]
-                    out0Re = scratchRe[0];
-                    out0Im = scratchIm[0];
+                idx0 = outIdx + u | 0;
+                tw1Incr = imul(stride, u);
 
-                    var tw1 = 0;
-                    for (q = 1; q < p; ++q) {
-                        tw1 += tw1Incr;
-                        if (tw1 >= size)
-                            tw1 -= size;
+                q1 = 0;
+                while ((q1 | 0) < (p | 0)) {
+                    // out0 = scratch[0]
+                    out0Re = fround(HEAPF32[(scratchRe << 2) >> 2]);
+                    out0Im = fround(HEAPF32[(scratchIm << 2) >> 2]);
+
+                    tw1 = 0;
+                    q = 1;
+
+                    while ((q | 0) < (p | 0)) {
+
+                        tw1 = tw1 + tw1Incr | 0;
+                        if ((tw1 | 0) >= (size | 0))
+                            tw1 = tw1 - size | 0;
 
                         // out0 += scratch[q] * tw[tw1]
-                        aRe = scratchRe[q], aIm = scratchIm[q];
-                        tRe = twRe[tw1], tIm = twIm[tw1];
-                        out0Re += aRe * tRe - aIm * tIm;
-                        out0Im += aRe * tIm + aIm * tRe;
+                        aRe = fround(HEAPF32[scratchRe + (q << 2) >> 2]);
+                        aIm = fround(HEAPF32[scratchIm + (q << 2) >> 2]);
+                        tRe = fround(HEAPF32[twRe + (tw1 << 2) >> 2]);
+                        tIm = fround(HEAPF32[twIm + (tw1 << 2) >> 2]);
+                        out0Re = fround(out0Re + fround(fround(aRe * tRe) - fround(aIm * tIm)));
+                        out0Im = fround(out0Im + fround(fround(aRe * tIm) + fround(aIm * tRe)));
+
+                        q = q + 1 | 0;
                     }
 
                     // out[idx0] = out0
-                    outRe[idx0] = out0Re;
-                    outIm[idx0] = out0Im;
+                    HEAPF32[outRe + (idx0 << 2) >> 2] = out0Re;
+                    HEAPF32[outIm + (idx0 << 2) >> 2] = out0Im;
 
-                    idx0 += m;
-                    tw1Incr += stride;
+                    idx0 = idx0 + m | 0;
+                    tw1Incr = tw1Incr + stride | 0;
+
+                    q1 = q1 + 1 | 0;
                 }
+                u = u + 1 | 0;
             }
         };
 
@@ -1862,55 +1887,6 @@ var context = typeof module === 'undefined' ? self : module.exports;
 (function () {
     if (context.FFT) return;
 
-
-    var butterflyN = function (outRe, outIm, outIdx, stride, twRe, twIm, m, p, size) {
-        var u, q1, q, idx0;
-        var out0Re, out0Im, aRe, aIm, tRe, tIm;
-
-        // FIXME: Allocate statically
-        var scratchRe = new Float32Array(p);
-        var scratchIm = new Float32Array(p);
-
-        var scale = Math.sqrt(1 / p);
-        for (u = 0; u < m; ++u) {
-            idx0 = outIdx + u;
-            for (q1 = 0; q1 < p; ++q1) {
-                // scratch[q1] = out[idx0] / sqrt(p)
-                scratchRe[q1] = outRe[idx0] * scale;
-                scratchIm[q1] = outIm[idx0] * scale;
-                idx0 += m;
-            }
-
-            idx0 = outIdx + u;
-            var tw1Incr = stride * u;
-            for (q1 = 0; q1 < p; ++q1) {
-                // out0 = scratch[0]
-                out0Re = scratchRe[0];
-                out0Im = scratchIm[0];
-
-                var tw1 = 0;
-                for (q = 1; q < p; ++q) {
-                    tw1 += tw1Incr;
-                    if (tw1 >= size)
-                        tw1 -= size;
-
-                    // out0 += scratch[q] * tw[tw1]
-                    aRe = scratchRe[q], aIm = scratchIm[q];
-                    tRe = twRe[tw1], tIm = twIm[tw1];
-                    out0Re += aRe * tRe - aIm * tIm;
-                    out0Im += aRe * tIm + aIm * tRe;
-                }
-
-                // out[idx0] = out0
-                outRe[idx0] = out0Re;
-                outIm[idx0] = out0Im;
-
-                idx0 += m;
-                tw1Incr += stride;
-            }
-        }
-    };
-
     var work = function (outRe, outIm, outIdx, fRe, fIm, fIdx, stride, inStride, factors, factorsIdx, twRe, twIm, size, inverse) {
         var p = factors[factorsIdx++];  // Radix
         var m = factors[factorsIdx++];  // Stage's FFT length / p
@@ -1947,7 +1923,13 @@ var context = typeof module === 'undefined' ? self : module.exports;
         case 3:  butterfly3(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
         case 4:  butterfly4(outRe, outIm, outIdx, stride, twRe, twIm, m, inverse); break;
         case 5:  butterfly5(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
-        default: butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size); break;
+        default: {
+            // FIXME: Allocate statically
+            var scratchRe = new Float32Array(p);
+            var scratchIm = new Float32Array(p);
+
+            butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size, scratchRe, scratchIm); break;
+        }
         }
     };
 
