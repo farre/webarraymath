@@ -29,6 +29,7 @@
 // interface ArrayMath
 //------------------------------------------------------------------------------
 
+// TODO(farre): use ES6 modules
 var context = typeof module === 'undefined' ? self : module.exports;
 (function (global) {
     if (context.ArrayMath) return;
@@ -40,8 +41,8 @@ var context = typeof module === 'undefined' ? self : module.exports;
     var ctor = function(stdlib, foreign, buffer) {
         "use asm";
         var HEAPF32  = new stdlib.Float32Array(buffer);
-        var HEAPU32  = new stdlib.Uint32Array(buffer);
-        var MHEAPU32 = new stdlib.Uint32Array(buffer);
+        var HEAPU32 = new stdlib.Uint32Array(buffer);
+        var HEAPI32  = new stdlib.Int32Array(buffer);
 
         var Infinity = stdlib.Infinity;
         var fround = stdlib.Math.fround;
@@ -640,10 +641,10 @@ var context = typeof module === 'undefined' ? self : module.exports;
             s = s | 0;
             var c = 1;
 
-            MHEAPU32[0] = s;
+            HEAPU32[0] = s;
             do {
                 s = (imul(s >>> 30 ^ s, 1812433253) | 0) + c | 0;
-                MHEAPU32[(c << 2) >> 2] = s;
+                HEAPU32[(c << 2) >> 2] = s;
                 c = c + 1 | 0;
             } while ((c | 0) < 624);
             return;
@@ -666,9 +667,9 @@ var context = typeof module === 'undefined' ? self : module.exports;
             y = fround(fround(y - x) * fround(2.3283064365386963E-10));
 
             do {
-                s = MHEAPU32[((c + 1 | 0) << 2) >> 2] | 0;
-                s = 0 - (s & 1) & -1727483681 ^ MHEAPU32[((((c + 397 | 0) >>> 0) % 624 | 0) << 2) >> 2] ^ (s & 2147483646 | MHEAPU32[(c << 2) >> 2] & -2147483648) >>> 1;
-                MHEAPU32[(c << 2) >> 2] = s
+                s = HEAPU32[((c + 1 | 0) << 2) >> 2] | 0;
+                s = 0 - (s & 1) & -1727483681 ^ HEAPU32[((((c + 397 | 0) >>> 0) % 624 | 0) << 2) >> 2] ^ (s & 2147483646 | HEAPU32[(c << 2) >> 2] & -2147483648) >>> 1;
+                HEAPU32[(c << 2) >> 2] = s
                 s = s >>> 11 ^ s;
                 s = s << 7 & -1658038656 ^ s;
                 s = s << 15 & -272236544 ^ s;
@@ -1366,7 +1367,7 @@ var context = typeof module === 'undefined' ? self : module.exports;
 
             var u = 0, q1 = 0, q = 0, idx0 = 0, tw1 = 0, tw1Incr = 0;
 
-            scale = fround(sqrt(fround(fround(1) / fround(p >>> 0))));
+            scale = fround(sqrt(fround(fround(1) / fround((p|0)))));
 
             while ((u | 0) < (m | 0)) {
                 idx0 = outIdx + u | 0;
@@ -1421,6 +1422,111 @@ var context = typeof module === 'undefined' ? self : module.exports;
             }
         };
 
+        function work(outRe, outIm, outIdx, fRe, fIm, fIdx, stride, inStride, factors, factorsIdx, twRe, twIm, size, inverse, scratchRe, scratchIm) {
+            outRe=outRe|0;
+            outIm=outIm|0;
+            outIdx=outIdx|0;
+            fRe=fRe|0;
+            fIm=fIm|0;
+            fIdx=fIdx|0;
+            stride=stride|0;
+            inStride=inStride|0;
+            factors=factors|0;
+            factorsIdx=factorsIdx|0;
+            twRe=twRe|0;
+            twIm=twIm|0;
+            size=size|0;
+            inverse=inverse|0;
+            scratchRe=scratchRe|0;
+            scratchIm=scratchIm|0;
+
+            var p = 0, m = 0, outIdxBeg = 0, outIdxEnd = 0, fIdxIncr = 0;
+
+            p =  HEAPI32[factors + (factorsIdx << 2) >> 2] | 0;  // Radix
+            factorsIdx = factorsIdx + 1 | 0;
+            m = HEAPI32[factors + (factorsIdx << 2) >> 2] | 0;  // Stage's FFT length / p
+            factorsIdx = factorsIdx + 1 | 0;
+
+            outIdxBeg = outIdx;
+            outIdxEnd = outIdx + imul(p, m) | 0;
+
+            fIdxIncr = imul(stride, inStride);
+
+            if ((m | 0) == 1) {
+                do {
+                    HEAPF32[outRe + (outIdx << 2) >> 2] = HEAPF32[fRe + (fIdx << 2) >> 2];
+                    HEAPF32[outIm + (outIdx << 2) >> 2] = HEAPF32[fIm + (fIdx << 2) >> 2];
+                    fIdx = fIdx + fIdxIncr | 0;
+                    outIdx = outIdx + 1 | 0;
+                }
+                while ((outIdx | 0) != (outIdxEnd | 0));
+            }
+            else {
+                do {
+                    // DFT of size m*p performed by doing p instances of smaller DFTs of
+                    // size m, each one takes a decimated version of the input.
+                    work(outRe, outIm, outIdx, fRe, fIm, fIdx, imul(stride, p), inStride, factors, factorsIdx, twRe, twIm, size, inverse, scratchRe, scratchIm);
+                    fIdx = fIdx + fIdxIncr | 0;
+                    outIdx = outIdx + m | 0;
+                }
+                while ((outIdx | 0) != (outIdxEnd | 0));
+            }
+
+            outIdx = outIdxBeg;
+
+            // Recombine the p smaller DFTs
+            switch ((p | 0)) {
+            case 2:  butterfly2(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
+            case 3:  butterfly3(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
+            case 4:  butterfly4(outRe, outIm, outIdx, stride, twRe, twIm, m, inverse); break;
+            case 5:  butterfly5(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
+            default: {
+                butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size, scratchRe, scratchIm); break;
+            }
+            }
+        };
+
+        /*  facBuf is populated by p1,m1,p2,m2, ...
+            where
+            p[i] * m[i] = m[i-1]
+            m0 = n                  */
+        function factor(n, facBuf) {
+            n=n|0;
+            facBuf=facBuf|0;
+
+            // Factor out powers of 4, powers of 2, then any remaining primes
+            var p = 4, idx = 0, floorSqrt = 0, maxFactor = 0;
+
+            floorSqrt = (~~fround(floor(sqrt(+(n|0))))) | 0;
+
+            do {
+                while ((((n | 0) % (p | 0)) | 0) != 0) {
+                    switch ((p | 0)) {
+                    case 4:  p = 2; break;
+                    case 2:  p = 3; break;
+                    default: p = (p + 2) | 0; break;
+                    }
+                    if ((p | 0) > (floorSqrt | 0))
+                        p = n | 0;
+                }
+
+                n = ~~fround(floor(fround(fround(n | 0) / fround (p | 0))));
+
+                HEAPI32[facBuf + (idx << 2) >> 2] = p | 0;
+                idx = idx + 1 | 0;
+                HEAPI32[facBuf + (idx << 2) >> 2] = n | 0;
+                idx = idx + 1 | 0;
+
+                if ((p | 0) > (maxFactor | 0)) {
+                    maxFactor = p;
+                }
+            }
+            while ((n | 0) > 1);
+
+            return maxFactor | 0;
+        };
+
+
         return { addA: addA,
                  addS: addS,
                  subA: subA,
@@ -1463,15 +1569,24 @@ var context = typeof module === 'undefined' ? self : module.exports;
                  sampleLinearRepeatA: sampleLinearRepeatA,
                  sampleCubicA: sampleCubicA,
                  sampleCubicRepeatA: sampleCubicRepeatA,
+                 factor: factor,
+                 work: work,
                }
     };
 
-    var ArrayMathAsm = ctor({Math: Math, Float32Array: Float32Array, Uint32Array: Uint32Array, Infinity}, {round: Math.round}, HEAP);
+    var ArrayMathAsm = ctor(
+        { Math, Float32Array, Uint32Array, Int32Array, Infinity }, {round: Math.round}, HEAP);
 
     var ArrayMath = {};
 
     ArrayMath.Float32Array = function (size) {
         var ta = new Float32Array(HEAP, top, size);
+        top += ta.byteLength;
+        return ta;
+    }
+
+    ArrayMath.Int32Array = function (size) {
+        var ta = new Int32Array(HEAP, top, size);
         top += ta.byteLength;
         return ta;
     }
@@ -1745,6 +1860,96 @@ var context = typeof module === 'undefined' ? self : module.exports;
             }
     };
 
+    /*  facBuf is populated by p1,m1,p2,m2, ...
+        where
+        p[i] * m[i] = m[i-1]
+        m0 = n                  */
+    var factor = function (n, facBuf) {
+        // Factor out powers of 4, powers of 2, then any remaining primes
+        var p = 4;
+        var floorSqrt = Math.floor(Math.sqrt(n));
+        var idx = 0;
+        do {
+            while (n % p) {
+                switch (p) {
+                case 4:  p = 2; break;
+                case 2:  p = 3; break;
+                default: p += 2; break;
+                }
+                if (p > floorSqrt)
+                    p = n;
+            }
+            n = Math.floor(n / p);
+            facBuf[idx++] = p;
+            facBuf[idx++] = n;
+        }
+        while (n > 1);
+    };
+
+    var FFT = function (size) {
+        if (!size)
+            size = 256;
+        Object.defineProperty(this, "size", {
+            configurable: false,
+            writable: false,
+            value: size
+        });
+
+        // Allocate arrays for twiddle factors
+        this._twiddlesFwdRe = new ArrayMath.Float32Array(size);
+        this._twiddlesFwdIm = new ArrayMath.Float32Array(size);
+        this._twiddlesInvRe = this._twiddlesFwdRe;
+        this._twiddlesInvIm = new ArrayMath.Float32Array(size);
+
+        // Init twiddle factors (both forward & reverse)
+        // TODO(farre): worried that we do this for doubles when they
+        // are used as floats
+        for (var i = 0; i < size; ++i) {
+            var phase = -2 * Math.PI * i / size;
+            var cosPhase = Math.cos(phase), sinPhase = Math.sin(phase);
+            this._twiddlesFwdRe[i] = cosPhase;
+            this._twiddlesFwdIm[i] = sinPhase;
+            this._twiddlesInvIm[i] = -sinPhase;
+        }
+
+        // Allocate arrays for radix plan
+        this._factors = new ArrayMathAsm.Int32Array(2 * 32);  // MAXFACTORS = 32
+
+        // Init radix factors (mixed radix breakdown)
+        // FIXME: Something seems to go wrong when using an FFT size that can be
+        // factorized into more than one butterflyN (e.g. try an FFT size of 11*13).
+        this._maxFactor = ArrayMathAsm.factor(size, this._factors);
+    };
+
+    FFT.prototype.forwardCplx = function (dstReal, dstImag, xReal, xImag) {
+        var twRe = this._twiddlesFwdRe;
+        var twIm = this._twiddlesFwdIm;
+        var scratchRe = new ArrayMathAsm.Float32Array(this._maxFactor);
+        var scratchIm = new ArrayMathAsm.Float32Array(this._maxFactor);
+
+        ArrayMathAsm.work(dstReal.byteOffset, dstImag.byteOffset, 0, xReal, xImag, 0, 1, 1, this._factors.byteOffset, 0, twRe, twIm, this.size, 0, scrathRe.byteOffset, scratchIm.byteOffset)
+    };
+
+    FFT.prototype.forward = function (dstReal, dstImag, x) {
+        // FIXME: Optimize this case (real input signal)
+        this.forwardCplx(dstReal, dstImag, x, new new ArrayMathAsm.Float32Array(this.size));
+    };
+
+    FFT.prototype.inverseCplx = function (dstReal, dstImag, xReal, xImag) {
+        var twRe = this._twiddlesInvRe;
+        var twIm = this._twiddlesInvIm;
+        var scratchRe = new ArrayMathAsm.Float32Array(this._maxFactor);
+        var scratchIm = new ArrayMathAsm.Float32Array(this._maxFactor);
+
+        ArrayMathAsm.work(dstReal.byteOffset, dstImag.byteOffset, 0, xReal, xImag, 0, 1, 1, this._factors.byteOffset, 0, twRe, twIm, this.size, 1, scrathRe.byteOffset, scratchIm.byteOffset)
+    };
+
+    FFT.prototype.inverse = function (dst, xReal, xImag) {
+        // FIXME: Optimize this case (real output signal)
+        this.inverseCplx(dst, new Float32Array(this.size), xReal, xImag);
+    };
+
+    context.FFT = FFT;
     context.ArrayMath = ArrayMath;
 })(this);
 
@@ -1887,132 +2092,4 @@ var context = typeof module === 'undefined' ? self : module.exports;
 (function () {
     if (context.FFT) return;
 
-    var work = function (outRe, outIm, outIdx, fRe, fIm, fIdx, stride, inStride, factors, factorsIdx, twRe, twIm, size, inverse) {
-        var p = factors[factorsIdx++];  // Radix
-        var m = factors[factorsIdx++];  // Stage's FFT length / p
-
-        var outIdxBeg = outIdx;
-        var outIdxEnd = outIdx + p * m;
-
-        var fIdxIncr = stride * inStride;
-        if (m == 1) {
-            do {
-                outRe[outIdx] = fRe[fIdx];
-                outIm[outIdx] = fIm[fIdx];
-                fIdx += fIdxIncr;
-                ++outIdx;
-            }
-            while (outIdx != outIdxEnd);
-        }
-        else {
-            do {
-                // DFT of size m*p performed by doing p instances of smaller DFTs of
-                // size m, each one takes a decimated version of the input.
-                work(outRe, outIm, outIdx, fRe, fIm, fIdx, stride * p, inStride, factors, factorsIdx, twRe, twIm, size, inverse);
-                fIdx += fIdxIncr;
-                outIdx += m;
-            }
-            while (outIdx != outIdxEnd);
-        }
-
-        outIdx = outIdxBeg;
-
-        // Recombine the p smaller DFTs
-        switch (p) {
-        case 2:  butterfly2(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
-        case 3:  butterfly3(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
-        case 4:  butterfly4(outRe, outIm, outIdx, stride, twRe, twIm, m, inverse); break;
-        case 5:  butterfly5(outRe, outIm, outIdx, stride, twRe, twIm, m); break;
-        default: {
-            // FIXME: Allocate statically
-            var scratchRe = new Float32Array(p);
-            var scratchIm = new Float32Array(p);
-
-            butterflyN(outRe, outIm, outIdx, stride, twRe, twIm, m, p, size, scratchRe, scratchIm); break;
-        }
-        }
-    };
-
-    /*  facBuf is populated by p1,m1,p2,m2, ...
-        where
-        p[i] * m[i] = m[i-1]
-        m0 = n                  */
-    var factor = function (n, facBuf) {
-        // Factor out powers of 4, powers of 2, then any remaining primes
-        var p = 4;
-        var floorSqrt = Math.floor(Math.sqrt(n));
-        var idx = 0;
-        do {
-            while (n % p) {
-                switch (p) {
-                case 4:  p = 2; break;
-                case 2:  p = 3; break;
-                default: p += 2; break;
-                }
-                if (p > floorSqrt)
-                    p = n;
-            }
-            n = Math.floor(n / p);
-            facBuf[idx++] = p;
-            facBuf[idx++] = n;
-        }
-        while (n > 1);
-    };
-
-    var FFT = function (size) {
-        if (!size)
-            size = 256;
-        Object.defineProperty(this, "size", {
-            configurable: false,
-            writable: false,
-            value: size
-        });
-
-        // Allocate arrays for twiddle factors
-        this._twiddlesFwdRe = new Float32Array(size);
-        this._twiddlesFwdIm = new Float32Array(size);
-        this._twiddlesInvRe = this._twiddlesFwdRe;
-        this._twiddlesInvIm = new Float32Array(size);
-
-        // Init twiddle factors (both forward & reverse)
-        for (var i = 0; i < size; ++i) {
-            var phase = -2 * Math.PI * i / size;
-            var cosPhase = Math.cos(phase), sinPhase = Math.sin(phase);
-            this._twiddlesFwdRe[i] = cosPhase;
-            this._twiddlesFwdIm[i] = sinPhase;
-            this._twiddlesInvIm[i] = -sinPhase;
-        }
-
-        // Allocate arrays for radix plan
-        this._factors = new Int32Array(2 * 32);  // MAXFACTORS = 32
-
-        // Init radix factors (mixed radix breakdown)
-        // FIXME: Something seems to go wrong when using an FFT size that can be
-        // factorized into more than one butterflyN (e.g. try an FFT size of 11*13).
-        factor(size, this._factors);
-    };
-
-    FFT.prototype.forwardCplx = function (dstReal, dstImag, xReal, xImag) {
-        var twRe = this._twiddlesFwdRe;
-        var twIm = this._twiddlesFwdIm;
-        work(dstReal, dstImag, 0, xReal, xImag, 0, 1, 1, this._factors, 0, twRe, twIm, this.size, false);
-    };
-
-    FFT.prototype.forward = function (dstReal, dstImag, x) {
-        // FIXME: Optimize this case (real input signal)
-        this.forwardCplx(dstReal, dstImag, x, new Float32Array(this.size));
-    };
-
-    FFT.prototype.inverseCplx = function (dstReal, dstImag, xReal, xImag) {
-        var twRe = this._twiddlesInvRe;
-        var twIm = this._twiddlesInvIm;
-        work(dstReal, dstImag, 0, xReal, xImag, 0, 1, 1, this._factors, 0, twRe, twIm, this.size, true);
-    };
-
-    FFT.prototype.inverse = function (dst, xReal, xImag) {
-        // FIXME: Optimize this case (real output signal)
-        this.inverseCplx(dst, new Float32Array(this.size), xReal, xImag);
-    };
-
-    context.FFT = FFT;
 })();
